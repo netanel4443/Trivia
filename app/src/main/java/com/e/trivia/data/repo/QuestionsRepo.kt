@@ -11,7 +11,7 @@ import kotlin.collections.LinkedHashSet
 class QuestionsRepo {
 
     fun getQuestions():Single<ArrayList<Question>>{
-            println("here1")
+
         return Single.fromCallable {
             val realm= Realm.getInstance(QuestionConfiguration().config())
             val questions=ArrayList<Question>()

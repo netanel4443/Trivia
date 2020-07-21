@@ -7,21 +7,22 @@ import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
+import com.e.VoiceAssistant.utils.printIfDebug
 import com.e.VoiceAssistant.utils.rxJavaUtils.throttle
 import com.e.trivia.R
 import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
+import com.e.trivia.utils.livedata.toObservable
 import com.e.trivia.viewmodels.MainScreenViewModel
 import com.e.trivia.viewmodels.commands.MainScreenCommands
 import com.e.trivia.viewmodels.states.MainScreenStates
-import com.e.trivia.viewmodels.states.States
 import com.jakewharton.rxbinding3.view.clicks
 import io.reactivex.Observable
 import kotlinx.android.synthetic.main.fragment_game.*
 
 
 class GameFragment : BaseFragment() {
-
+    private val TAG="GameFragment"
     private  val viewModel: MainScreenViewModel by activityViewModels()
     private  var playerDetails=PlayerDetails()
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -35,9 +36,7 @@ class GameFragment : BaseFragment() {
 
         attachStatesObserver()
         attachCommandsObserver()
-        val myObservable = Observable.just("a", "b", "c", "d", "e")
-        myObservable.scan { x, y -> x + y }
-            .subscribe(System.out::println)
+
         firstInits()
 
         +yesAnswerBtnGameFragment.clicks().throttle().subscribe{
@@ -66,18 +65,23 @@ class GameFragment : BaseFragment() {
 
     private fun attachCommandsObserver() {
 
-      +viewModel.commands.subscribe{command->
+      +viewModel.commands.toObservable(viewLifecycleOwner).distinctUntilChanged()
+          .scan{prev,now->renderState(prev,now)}
+          .subscribe({}){ printIfDebug(TAG,it.message)}
+    }
 
-           when(command){
-               is MainScreenCommands.PassPlayerDetails -> passedPlayerDetailsFromActivity(command.details)
-               is MainScreenCommands.NewQuestion-> updateQuestion(command.question)
-               is MainScreenCommands.EnableAnswerBtns ->{ enableAnswerButtons(command.enable) }
-               is MainScreenCommands.ChangeAnswerColor -> isAnswerCorrectColor(command.color)
-               is MainScreenCommands.ChangeScoreAnimation -> changeScoreAnimation(command.color,command.score)
-               is MainScreenCommands.ChangeVisibility -> changeScoreTviewVisibility(command.visibility)
-               is MainScreenCommands.UpdateOrSetTimer-> updateTime(command.timeInterval,command.take)
-           }
-       }
+    private fun renderState(prev:MainScreenCommands,now:MainScreenCommands):MainScreenCommands{
+        println("a!=b ${prev!=now}")
+
+        if (prev.passPlayerDetails!=now.passPlayerDetails) { passedPlayerDetailsFromActivity(now.passPlayerDetails)}
+        if (prev.newQuestion!=now.newQuestion){ updateQuestion(now.newQuestion)}
+        if (prev.enableAnswerBtns!=now.enableAnswerBtns){ enableAnswerButtons(now.enableAnswerBtns)}
+        if (prev.changeAnswerColor!=now.changeAnswerColor){ isAnswerCorrectColor(now.changeAnswerColor)}
+        if (prev.changeScoreAnimation!=now.changeScoreAnimation){changeScoreAnimation(now.changeScoreAnimation.color,now.changeScoreAnimation.score)}
+        if (prev.changeAlpha!=now.changeAlpha){changeScoreTviewVisibility(now.changeAlpha)}
+        if (prev.updateOrSetTimer!=now.updateOrSetTimer){updateTime(now.updateOrSetTimer.timeInterval,now.updateOrSetTimer.take)}
+
+        return now
     }
 
     private fun changeScoreTviewVisibility(visibility: Float) {
