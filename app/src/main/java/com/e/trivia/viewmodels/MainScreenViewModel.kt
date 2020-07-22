@@ -10,10 +10,12 @@ import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
 import com.e.trivia.domain.MainScreenUseCases
 import com.e.trivia.viewmodels.commands.MainScreenCommands
+import com.e.trivia.viewmodels.commands.MainScreenCommandsEnum
 import com.e.trivia.viewmodels.states.MainScreenStates
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.subjects.BehaviorSubject
 import java.util.concurrent.TimeUnit
 
 class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseViewModel() {
@@ -22,16 +24,18 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
     private val _state =MutableLiveData<MainScreenStates>()
     val state:LiveData<MainScreenStates> get()= _state
     private var _commands=MainScreenCommands()
-    val commands = MutableLiveData<MainScreenCommands>(_commands)
+    val commands = BehaviorSubject.create<Pair<MainScreenCommandsEnum,MainScreenCommands>>()
+        
 
     private var questionDisposable=CompositeDisposable()
     private var playerDetails=PlayerDetails()
     private val questions= ArrayList<Question>()
     private var remainingTime:Long=60
 
-    private fun renderUi(_commandsClone:MainScreenCommands){
+    private fun renderUi(state:MainScreenCommandsEnum,_commandsClone:MainScreenCommands){
         _commands=_commandsClone
-        commands.postValue(_commands)
+        commands.onNext(Pair(state,_commands))
+
     }
 
     fun startGame(){
@@ -48,16 +52,16 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
     }
 
     private fun restoreData(){
-     if (questions.isEmpty()) {
-         +getQuestionsFromDb()
-             .subscribeOnIoAndObserveOnMain()
-             .subscribe({
-                 updateUiWithRestoredData()
-             }) { printIfDebug(TAG, it.message) }
-     }
-     else{
-         updateUiWithRestoredData()
-     }
+        if (questions.isEmpty()) {
+            +getQuestionsFromDb()
+                .subscribeOnIoAndObserveOnMain()
+                .subscribe({
+                    updateUiWithRestoredData()
+                }) { printIfDebug(TAG, it.message) }
+        }
+        else{
+            updateUiWithRestoredData()
+        }
 
     }
 
@@ -68,25 +72,23 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         savedStateHandle.get<Int>("score")?.run{ playerDetails.score=this }
         updateQuestion(playerDetails.level,remainingTime,60-remainingTime)
 
-       renderUi( _commands.copy(passPlayerDetails = playerDetails))
+        renderUi(MainScreenCommandsEnum.PassPlayerDetails ,_commands.copy(passPlayerDetails = playerDetails))
 
     }
 
     private fun firstGameInits(){
 
-       val detailsOb =useCases.getPlayerDetails().toObservable()
-           .doOnNext {
-               playerDetails=it
-               playerDetails.name="adv"//todo delete for test only
-               println("detailssss $it")
-               renderUi(_commands.copy(passPlayerDetails =playerDetails))
-           }
-       val questionsOb= useCases.getQuestions().toObservable()
-           .doOnNext {
-               questions.addAll(it)
-           }
+        val detailsOb =useCases.getPlayerDetails().toObservable()
+            .doOnNext {
+                playerDetails=it
+                renderUi(MainScreenCommandsEnum.PassPlayerDetails,_commands.copy(passPlayerDetails =playerDetails))
+            }
+        val questionsOb= useCases.getQuestions().toObservable()
+            .doOnNext {
+                questions.addAll(it)
+            }
 
-       val obArray= arrayOf(detailsOb, questionsOb)
+        val obArray= arrayOf(detailsOb, questionsOb)
 
         +Observable.combineLatest(obArray){}
             .subscribeOnIoAndObserveOnMain()
@@ -123,7 +125,7 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
                 .subscribe(
                     { details ->
                         val copy=_commands.copy(readPlayerDetails= details)
-                        renderUi(copy)
+                        renderUi(MainScreenCommandsEnum.ReadPlayerDetails,copy)
                     },
                     { printIfDebug(TAG, it.message) })
         }
@@ -135,31 +137,31 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
     fun updateQuestion(level:Int,initialDelay: Long,take: Long) {
         //todo handle index out of bounds
         val question=questions.elementAtOrNull(level)?.let {it}?: Question("no more questions",true)
-        renderUi(_commands.copy(newQuestion=question))
+        renderUi(MainScreenCommandsEnum.NewQuestion,_commands.copy(newQuestion=question))
         startQuestionTimer(initialDelay,take)
     }
 
     fun enableAnswerBtns(enable:Boolean) {
-        renderUi(_commands.copy(enableAnswerBtns=enable))
+        renderUi(MainScreenCommandsEnum.EnableAnswerBtns,_commands.copy(enableAnswerBtns=enable))
     }
 
     fun checkAnswer(answer:Boolean,level:Int) {
         val color = if (answer==questions.elementAtOrNull(level)?.answer) { Color.GREEN } else {Color.RED}
-        renderUi(_commands.copy(changeAnswerColor = color))
+        renderUi(MainScreenCommandsEnum.ChangeAnswerColor,_commands.copy(changeAnswerColor = color))
         increaseOrDecreaseScore(color,50)// increase or decrease with  animation limited to 1 sec
         setTimer(1,TimeUnit.SECONDS){
             updateQuestion(level+1,0,60)
             updatePlayerDetails(50)
-            renderUi(_commands.copy(changeAnswerColor = Color.WHITE))
-            renderUi(_commands.copy(enableAnswerBtns = true))
-            renderUi(_commands.copy(changeAlpha= (0f)))
+            renderUi(MainScreenCommandsEnum.ChangeAnswerColor,_commands.copy(changeAnswerColor = Color.WHITE))
+            renderUi(MainScreenCommandsEnum.EnableAnswerBtns,_commands.copy(enableAnswerBtns = true))
+            renderUi(MainScreenCommandsEnum.ChangeAlpha,_commands.copy(changeAlpha= (0f)))
         }
     }
 
     private fun updatePlayerDetails(score:Int){
         val tmpDetails=PlayerDetails( score = playerDetails.score+score,
-                                      level = playerDetails.level+1)
-        renderUi(_commands.copy(passPlayerDetails = tmpDetails))
+            level = playerDetails.level+1)
+        renderUi(MainScreenCommandsEnum.PassPlayerDetails,_commands.copy(passPlayerDetails = tmpDetails))
         playerDetails=tmpDetails
     }
 
@@ -170,8 +172,8 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
     }
 
     private fun changeScoreAnimation(color: Int,score: Int) {
-        renderUi(_commands.copy(changeScoreAnimation= MainScreenCommands.ChangeScoreAnimation(color,score)))
-        renderUi(_commands.copy(changeAlpha = 1f))
+        renderUi(MainScreenCommandsEnum.ChangeScoreAnimation,_commands.copy(changeScoreAnimation= MainScreenCommands.ChangeScoreAnimation(color,score)))
+        renderUi(MainScreenCommandsEnum.ChangeAlpha,_commands.copy(changeAlpha = 1f))
     }
 
     fun setTimer(time:Long,timeUnit: TimeUnit,block:()->Unit){
@@ -204,6 +206,5 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         questionDisposable.clear()
     }
 }
-
 
 

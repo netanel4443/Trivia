@@ -1,18 +1,19 @@
-package com.e.trivia.viewmodels.states
+package com.e.trivia.viewmodels.commands
 
+import android.graphics.Color
 import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
 
- class States{
-// val a:readPlayerDetails,
-// val b:passPlayerDetails) {
-// class readPlayerDetails(val details: PlayerDetails)
-// class passPlayerDetails(val details: PlayerDetails)
-// class NewQuestion(val question: Question)
-// class EnableAnswerBtns(val enable: Boolean)
-// class ChangeAnswerColor(val color: Int)
-// class ChangeScoreAnimation(val color: Int,val score: Int)
-// class ChangeAlpha(val visibility: Float)
-// class UpdateOrSetTimer(val timeInterval:Long,val take:Long)
-
+data class States(
+ var readPlayerDetails:PlayerDetails=PlayerDetails(),
+ var passPlayerDetails:PlayerDetails= PlayerDetails(),
+ var newQuestion:Question= Question("",false),
+ var enableAnswerBtns:Boolean= true,
+ var changeAnswerColor:Int= Color.BLACK,
+ var changeScoreAnimation:ChangeScoreAnimation= ChangeScoreAnimation(Color.GREEN,0),
+ var changeAlpha:Float=0f,
+ var updateOrSetTimer: UpdateOrSetTimer=UpdateOrSetTimer(60,60)
+) {
+ data class ChangeScoreAnimation(val color: Int,val score: Int)
+ data class UpdateOrSetTimer(val timeInterval:Long,val take:Long)
 }

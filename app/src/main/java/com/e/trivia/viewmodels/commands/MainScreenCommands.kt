@@ -16,4 +16,16 @@ data class MainScreenCommands(
 ) {
     data class ChangeScoreAnimation(val color: Int,val score: Int)
     data class UpdateOrSetTimer(val timeInterval:Long,val take:Long)
+
+}
+
+enum class MainScreenCommandsEnum{
+    ReadPlayerDetails,
+    PassPlayerDetails,
+    NewQuestion,
+    EnableAnswerBtns,
+    ChangeAnswerColor,
+    ChangeScoreAnimation,
+    ChangeAlpha,
+    UpdateOrSetTimer,
 }
