@@ -13,8 +13,8 @@ abstract class BaseFragment :Fragment(){
     }
 
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+    override fun onDestroy() {
+        super.onDestroy()
         compositeDisposable.clear()
     }
 }

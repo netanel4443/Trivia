@@ -2,7 +2,6 @@ package com.e.trivia.data.repo
 
 import com.e.VoiceAssistant.utils.printIfDebug
 import com.e.trivia.data.PlayerDetails
-import com.e.trivia.data.Question
 import com.e.trivia.data.repo.configurations.QuestionConfiguration
 import com.e.trivia.data.repo.configurations.RealmMainConfiguration
 import com.e.trivia.realmdbobjects.PlayerDetailsRealmObject
@@ -10,7 +9,6 @@ import com.e.trivia.realmdbobjects.QuestionRealmObject
 import io.reactivex.Completable
 import io.reactivex.Single
 import io.realm.Realm
-import io.realm.RealmConfiguration
 import java.lang.Exception
 
 class RepoCrud(){
@@ -27,10 +25,10 @@ class RepoCrud(){
                         .findFirst()
 
                 realmObject?.let { details->
-                    playerDetails.level=details.level
-                    playerDetails.score=details.score
+                    playerDetails.Highestlevel=details.level
+                    playerDetails.highestScore=details.score
                     playerDetails.name=details.name
-                    playerDetails.coins=details.coins
+                    playerDetails.diamonds=details.coins
                 }
             }
            playerDetails

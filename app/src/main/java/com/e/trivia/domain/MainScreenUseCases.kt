@@ -24,7 +24,7 @@ class MainScreenUseCases() {
 
     }
 
-    fun timerInterval(initialDelay:Long,take:Long): Observable<Long> {
+    fun timerInterval(take:Long): Observable<Long> {
         return Observable
                  .interval(1,TimeUnit.SECONDS)
                  .take(take)
