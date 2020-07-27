@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.lifecycle.Observer
 import com.e.VoiceAssistant.utils.printIfDebug
+import com.e.VoiceAssistant.utils.printInfoIfDebug
 import com.e.trivia.R
 import com.e.trivia.data.PlayerDetails
 import com.e.trivia.ui.fragments.FragmentsTag
@@ -28,7 +29,7 @@ class MainActivity : BaseAdsActivity() {
         supportActionBar?.hide()
 
         attachEffectsObserver()
-        attachCommandsObserver()
+        attachStatesObserver()
 
         viewModel.firstGameInits()
         viewModel.forceUpdateState()
@@ -51,15 +52,16 @@ class MainActivity : BaseAdsActivity() {
         })
     }
 
-    private fun attachCommandsObserver() {
+    private fun attachStatesObserver() {
         +viewModel.states.toObservable(this)
             .scan{prev,now->renderState(prev,now)}
-            .subscribe({}){ printIfDebug(TAG,it.message) }
+            .subscribe({}){ printInfoIfDebug(TAG,it.message) }
     }
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
-//        println("${prev} \n $now")
-        val forceRender=now.forceRender
+        println("${prev} \n $now")
+        val forceRender=now.forceRender>prev.forceRender
+
         if (prev.passPlayerDetails!=now.passPlayerDetails || forceRender){updatePlayerDetailsDetails(now.passPlayerDetails)}
         return now
     }

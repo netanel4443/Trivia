@@ -36,18 +36,14 @@ class MainScreenViewModel() : BaseViewModel() {
     private var takeTime:Long=60
 
     private fun updateState(_stateClone: MainScreenState){
-        _stateClone.forceRender=false
         _states=_stateClone
         states.postValue(_states)
     }
 
-    private fun forceUpdateState(stateClone: MainScreenState){
-        stateClone.forceRender = true
-        states.postValue(stateClone)
-    }
 
     fun forceUpdateState(){
-        forceUpdateState(_states)
+     val stateClone=_states.copy(forceRender = _states.forceRender+1)
+         updateState(stateClone)
     }
 
     fun goToGameScreen(){
@@ -56,7 +52,8 @@ class MainScreenViewModel() : BaseViewModel() {
 
     fun startGameAllQuestions(){
         _states= MainScreenState(
-            passPlayerDetails = _states.passPlayerDetails
+            passPlayerDetails = _states.passPlayerDetails,
+            forceRender = _states.forceRender
         )
         //reset timer
         remainingTime=0

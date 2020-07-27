@@ -81,16 +81,16 @@ class GameFragment : BaseFragment() {
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
 
-        val configuration=now.forceRender
-
+        val forceRender=now.forceRender!=prev.forceRender
+        println("forcerender $forceRender")
 //        println("$prev \n $now")
 
-        if (prev.currentGameDetails!=now.currentGameDetails || configuration) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}
-        if (prev.newQuestion!=now.newQuestion || configuration){ updateQuestion(now.newQuestion)}
-        if (prev.enableAnswerBtns!=now.enableAnswerBtns || configuration){ enableAnswerButtons(now.enableAnswerBtns)}
-        if (prev.changeAnswerColor!=now.changeAnswerColor || configuration){ isAnswerCorrectColor(now.changeAnswerColor)}
-        if (prev.changeScoreAnimation!=now.changeScoreAnimation || configuration){changeScoreAnimation(now.changeScoreAnimation.color,now.changeScoreAnimation.score)}
-        if (prev.changeAlpha!=now.changeAlpha || configuration){changeScoreTviewVisibility(now.changeAlpha)}
+        if (prev.currentGameDetails!=now.currentGameDetails || forceRender) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}
+        if (prev.newQuestion!=now.newQuestion || forceRender){ updateQuestion(now.newQuestion)}
+        if (prev.enableAnswerBtns!=now.enableAnswerBtns || forceRender){ enableAnswerButtons(now.enableAnswerBtns)}
+        if (prev.changeAnswerColor!=now.changeAnswerColor || forceRender){ isAnswerCorrectColor(now.changeAnswerColor)}
+        if (prev.changeScoreAnimation!=now.changeScoreAnimation || forceRender){ changeScoreAnimation(now.changeScoreAnimation.color,now.changeScoreAnimation.score)}
+        if (prev.changeAlpha!=now.changeAlpha || forceRender){ changeScoreTviewVisibility(now.changeAlpha)}
 //        if (prev.updateOrSetTimer!=now.updateOrSetTimer || configuration){ updateTime(now.updateOrSetTimer.timeInterval,now.updateOrSetTimer.take)}
 
         return now

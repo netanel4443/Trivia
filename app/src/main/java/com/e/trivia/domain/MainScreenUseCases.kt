@@ -27,7 +27,7 @@ class MainScreenUseCases() {
     fun timerInterval(take:Long): Observable<Long> {
         return Observable
                  .interval(1,TimeUnit.SECONDS)
-                 .take(5)
+                 .take(take)
     }
 
     // for personal use because Realm studio doesn't work properly

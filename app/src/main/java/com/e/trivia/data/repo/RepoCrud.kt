@@ -35,29 +35,16 @@ class RepoCrud(){
         }
     }
 
-    fun deletePlayerDetails(playerDetails: PlayerDetails):Completable{
-        return Completable.fromAction {
-            val realm=Realm.getInstance(RealmMainConfiguration().config())
-            realm.use {
-                val obj=  realm.where(PlayerDetailsRealmObject::class.java)
-                    .equalTo("name",playerDetails.name)
-                    .findFirst()?.deleteFromRealm()
-            }
-        }
-    }
-
-
     fun deletePlayerDetails(playerName: String):Completable{
         return Completable.fromAction {
             val realm=Realm.getInstance(RealmMainConfiguration().config())
             realm.use {
-                val obj=  realm.where(PlayerDetailsRealmObject::class.java)
+                realm.where(PlayerDetailsRealmObject::class.java)
                     .equalTo("name",playerName)
                     .findFirst()?.deleteFromRealm()
             }
         }
     }
-
 
     fun savePlayerDetails(playerDetails:PlayerDetails):Completable{
         return Completable.fromAction {
