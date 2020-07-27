@@ -39,7 +39,8 @@ class GameFragment : BaseFragment() {
         attachStatesObserver()
         attachEffectsObserver()
 
-        firstInits()
+        viewModel.getQuestion()
+        viewModel.forceUpdateState()
 
         +yesAnswerBtnGameFragment.clicks().throttle().subscribe{
             viewModel.checkAnswer(true)
@@ -54,10 +55,6 @@ class GameFragment : BaseFragment() {
     }
 
 
-    private fun firstInits() {
-        viewModel.firstInitOrResotre()
-    }
-
     private fun attachTimerObserver() {
         viewModel.timerState.observe(viewLifecycleOwner, Observer{ progress->
                setProgressBarProgress(progress)
@@ -71,6 +68,7 @@ class GameFragment : BaseFragment() {
     }
 
     private fun attachEffectsObserver() {
+
         viewModel.viewEffects.observe(viewLifecycleOwner, Observer {effect->
             when(effect){
                 is MainScreenEffects.ShowGameOverDialog->showGameOverDialog(effect.playerDetails,effect.gameScore)
@@ -78,17 +76,14 @@ class GameFragment : BaseFragment() {
         })
     }
 
-    private fun showGameOverDialog(playerDetails: PlayerDetails,gameScore:Int) {
-        GameOverDialog().show(requireContext(),playerDetails,gameScore){
-        requireActivity().removeFragment(FragmentsTag.GAME_FRAGMEN)
-        }
-    }
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
 
         val configuration=now.isConfiguration
 
-        if (prev.passPlayerDetails!=now.passPlayerDetails || configuration) { passedPlayerDetailsFromActivity(now.passPlayerDetails)}
+        println("$prev \n $now")
+
+        if (prev.currentGameDetails!=now.currentGameDetails || configuration) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}
         if (prev.newQuestion!=now.newQuestion || configuration){ updateQuestion(now.newQuestion)}
         if (prev.enableAnswerBtns!=now.enableAnswerBtns || configuration){ enableAnswerButtons(now.enableAnswerBtns)}
         if (prev.changeAnswerColor!=now.changeAnswerColor || configuration){ isAnswerCorrectColor(now.changeAnswerColor)}
@@ -97,6 +92,12 @@ class GameFragment : BaseFragment() {
 //        if (prev.updateOrSetTimer!=now.updateOrSetTimer || configuration){ updateTime(now.updateOrSetTimer.timeInterval,now.updateOrSetTimer.take)}
 
         return now
+    }
+
+    private fun showGameOverDialog(playerDetails: PlayerDetails,gameScore:Int) {
+        GameOverDialog().show(requireContext(),playerDetails,gameScore){
+            requireActivity().removeFragment(FragmentsTag.GAME_FRAGMEN)
+        }
     }
 
     private fun changeScoreTviewVisibility(visibility: Float) {
@@ -127,9 +128,9 @@ class GameFragment : BaseFragment() {
         viewModel.startQuestionTimer(initialDelay,take)//start from 0 and repeat 60 times
     }
 
-    private fun passedPlayerDetailsFromActivity(details: PlayerDetails) {
-        scoreGameFragmentsTview.text="Score: "+details.highestScore.toString()
-        coinsGameFragmentsTview.text="Coins: "+details.diamonds.toString()
+    private fun passedPlayerDetailsFromActivity(score:Int,level:Int) {
+        scoreGameFragmentsTview.text="Score: "+score
+        levelGameFragmentsTview.text="level: "+level
     }
 
     private fun enableAnswerButtons(enabled:Boolean){
@@ -139,6 +140,5 @@ class GameFragment : BaseFragment() {
 
     override fun onStop() {
         super.onStop()
-        viewModel.saveData()
     }
 }

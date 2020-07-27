@@ -29,9 +29,12 @@ class MainActivity : BaseAdsActivity() {
         attachEffectsObserver()
         attachCommandsObserver()
 
-        viewModel.getPlayerDetails()
+        viewModel.firstGameInits()
 
-        startGameBtn.setOnClickListener { viewModel.startGame() }
+        startAllQuestionsGameBtn.setOnClickListener {
+            viewModel.startGameAllQuestions()
+            viewModel.goToGameScreen()
+        }
 
         /**this is only for personal user , Realm studio doesn't work properly so i need to
            create first template*/
@@ -53,12 +56,13 @@ class MainActivity : BaseAdsActivity() {
     }
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
-        if (prev.readPlayerDetails!=now.readPlayerDetails){updatePlayerDetailsDetails(now.readPlayerDetails)}
+//        println("${prev} \n $now")
+        if (prev.passPlayerDetails!=now.passPlayerDetails){updatePlayerDetailsDetails(now.passPlayerDetails)}
         return now
     }
 
     private fun updatePlayerDetailsDetails(details:PlayerDetails) {
-        playerDetails.text="Name:${details.name} \n Level: ${details.Highestlevel}\n Score: ${details.highestScore} \n ${details.diamonds}"
+        playerDetails.text="Name:${details.name} \n Level: ${details.highestlevel}\n Score: ${details.highestScore} \n ${details.diamonds}"
     }
 
     private fun startGame() {

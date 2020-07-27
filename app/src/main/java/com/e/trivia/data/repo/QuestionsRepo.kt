@@ -2,11 +2,10 @@ package com.e.trivia.data.repo
 
 import com.e.trivia.data.Question
 import com.e.trivia.data.repo.configurations.QuestionConfiguration
-import com.e.trivia.realmdbobjects.QuestionRealmObject
+import com.e.trivia.data.repo.realmdbobjects.QuestionRealmObject
 import io.reactivex.Single
 import io.realm.Realm
 import java.util.*
-import kotlin.collections.LinkedHashSet
 
 class QuestionsRepo {
 

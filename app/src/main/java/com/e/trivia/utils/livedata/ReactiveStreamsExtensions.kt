@@ -14,7 +14,7 @@ import org.reactivestreams.Publisher
 fun <T> LiveData<T>.toObservable(lifecycleOwner: LifecycleOwner): Observable<T> = Observable
     .fromPublisher(LiveDataReactiveStreams.toPublisher(lifecycleOwner, this))
 
-
 fun <T> Flowable<T>.toLiveData(): LiveData<T> = LiveDataReactiveStreams.fromPublisher(this)
 
 fun <T> BehaviorSubject<T>.toLiveData(): LiveData<T> = LiveDataReactiveStreams.fromPublisher(this.toFlowable(BackpressureStrategy.BUFFER))
+

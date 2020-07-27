@@ -4,8 +4,8 @@ import com.e.VoiceAssistant.utils.printIfDebug
 import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.repo.configurations.QuestionConfiguration
 import com.e.trivia.data.repo.configurations.RealmMainConfiguration
-import com.e.trivia.realmdbobjects.PlayerDetailsRealmObject
-import com.e.trivia.realmdbobjects.QuestionRealmObject
+import com.e.trivia.data.repo.realmdbobjects.PlayerDetailsRealmObject
+import com.e.trivia.data.repo.realmdbobjects.QuestionRealmObject
 import io.reactivex.Completable
 import io.reactivex.Single
 import io.realm.Realm
@@ -25,7 +25,7 @@ class RepoCrud(){
                         .findFirst()
 
                 realmObject?.let { details->
-                    playerDetails.Highestlevel=details.level
+                    playerDetails.highestlevel=details.level
                     playerDetails.highestScore=details.score
                     playerDetails.name=details.name
                     playerDetails.diamonds=details.coins

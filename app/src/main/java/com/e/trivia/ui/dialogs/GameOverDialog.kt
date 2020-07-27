@@ -2,6 +2,7 @@ package com.e.trivia.ui.dialogs
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.widget.TextView
@@ -35,7 +36,7 @@ class GameOverDialog {
         okBtn.setOnClickListener {
             alert.dismiss()
         }
-
+        
         alert.setOnDismissListener { returnToMainScreen() }
 
         alert.show()

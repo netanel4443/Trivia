@@ -26,14 +26,15 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
     val timerState:LiveData<Int> get()= _timerState
 
     private var _states= MainScreenState()
-    val states = MutableLiveData<MainScreenState>()
+    val states = MutableLiveData(_states)
 
     private val _viewEffects=SingleLiveEvent<MainScreenEffects>()
     val viewEffects:LiveData<MainScreenEffects> get() = _viewEffects
 
     private var questionDisposable=CompositeDisposable()
     private val questions= ArrayList<Question>()
-    private var remainingTime:Long=60
+    private var remainingTime:Long=0
+    private var takeTime:Long=60
 
     private fun updateState(_stateClone: MainScreenState){
         _stateClone.isConfiguration=false
@@ -41,12 +42,17 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         states.postValue(_states)
     }
 
-    private fun updateStateAfterConfiguration(stateClone: MainScreenState){
+    private fun forceUpdateState(stateClone: MainScreenState){
         stateClone.isConfiguration = true
         states.postValue(stateClone)
     }
 
-    fun startGame(){
+    fun forceUpdateState(){
+        forceUpdateState(_states)
+    }
+
+
+    fun goToGameScreen(){
         _viewEffects.value=MainScreenEffects.StartGameScreen
     }
 
@@ -55,67 +61,32 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
             readPlayerDetails = _states.readPlayerDetails,
             passPlayerDetails = _states.passPlayerDetails
         )
+        forceUpdateState(_states)
     }
 
-    fun firstInitOrResotre(){
-        if (savedStateHandle.keys().isEmpty()){
-            firstGameInits()
-        }
-        else{
-           restoreData()
-        }
-    }
-
-    private fun restoreData(){
+     fun firstGameInits(){
         if (questions.isEmpty()) {
-            +getQuestionsFromDb()
+            val detailsOb = useCases.getPlayerDetails().toObservable()
+                .doOnNext {
+                    updateState(_states.copy(passPlayerDetails = it))
+                }
+            val questionsOb = useCases.getQuestions().toObservable()
+                .doOnNext {
+                    questions.addAll(it)
+                }
+
+            val obArray = arrayOf(detailsOb, questionsOb)
+
+            +Observable.combineLatest(obArray) {}
                 .subscribeOnIoAndObserveOnMain()
-                .subscribe({
-                    updateUiWithRestoredData()
-                }) { printIfDebug(TAG, it.message) }
+                .subscribe({}) { printIfDebug(TAG, it.message) }
         }
-        else{
-            updateUiWithRestoredData()
-        }
-
-    }
-
-    private fun updateUiWithRestoredData(){
-
-        val playerDetails=PlayerDetails()
-//        savedStateHandle.get<PlayerDetails>("playerDetails")?.run { playerDetails=this }
-        savedStateHandle.get<Long>("remainingTime")?.run { remainingTime=this }
-        savedStateHandle.get<Int>("level")?.run{ playerDetails.Highestlevel=this }
-        savedStateHandle.get<Int>("score")?.run{ playerDetails.highestScore=this }
-        updateQuestion(playerDetails.Highestlevel,remainingTime,60-remainingTime)
-
-        updateStateAfterConfiguration( _states.copy(passPlayerDetails = playerDetails))
-
-    }
-
-    private fun firstGameInits(){
-
-        val detailsOb =useCases.getPlayerDetails().toObservable()
-            .doOnNext {
-                updateState(_states.copy(passPlayerDetails =it))
-            }
-        val questionsOb= useCases.getQuestions().toObservable()
-            .doOnNext {
-                questions.addAll(it)//todo to keep in states?
-            }
-
-        val obArray= arrayOf(detailsOb, questionsOb)
-
-        +Observable.combineLatest(obArray){}
-            .subscribeOnIoAndObserveOnMain()
-            .subscribe({updateQuestion(_states.passPlayerDetails.Highestlevel,0,60)}){ printIfDebug(TAG,it.message)}
-
     }
 
     private fun getQuestionsFromDb(): Single<ArrayList<Question>> {
         return useCases.getQuestions()
             .doOnSuccess {
-                questions.addAll(it)//todo to keep in states?
+                questions.addAll(it)
                 printIfDebug(TAG,"$it")
             }
     }
@@ -127,7 +98,8 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
             .subscribeOnIoAndObserveOnMain()
             .doOnComplete {
                 printInfoIfDebug(TAG,"completed")
-                _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentScore))
+                updatePlayerDetailsWhenGameOver()
+                _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentGameDetails.currentScore))
             }
             .subscribe({counter->
                 remainingTime=prevRemainingTime+counter+1
@@ -137,42 +109,33 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         )
     }
 
-    fun getPlayerDetails() {
-        //todo fix this.Its been called from mainActivity
-        if (savedStateHandle.keys().isEmpty()) {
-            +useCases.getPlayerDetails()
-                .subscribeOnIoAndObserveOnMain()
-                .subscribe(
-                    { details ->
-                        val copy=_states.copy(readPlayerDetails= details)
-                        updateState(copy)
-                    },
-                    { printIfDebug(TAG, it.message) })
+     fun getQuestion() {
+           getQuestion(remainingTime,takeTime)
+    }
+
+   private fun getQuestion(initialDelay: Long, take: Long) {
+        //todo no more questions logic and game over
+        questions.elementAtOrNull(_states.currentGameDetails.currentLevel)?.let {question->
+            updateState(_states.copy(newQuestion=question))
+            startQuestionTimer(initialDelay,take)
+        }?:let {
+           val question= Question("no more questions", true)
+        updateState( _states.copy(newQuestion = question))
         }
-        else{
 
-        }
-    }
+   }
 
-    fun updateQuestion(level:Int,initialDelay: Long,take: Long) {
-        //todo handle index out of bounds
-        val question=questions.elementAtOrNull(level)?.let {it}?: Question("no more questions",true)
-        updateState(_states.copy(newQuestion=question))
-        startQuestionTimer(initialDelay,take)
-    }
-
-    fun enableAnswerBtns(enable:Boolean) {
-        updateState(_states.copy(enableAnswerBtns=enable))
-    }
+   fun enableAnswerBtns(enable:Boolean) {
+       updateState(_states.copy(enableAnswerBtns=enable))
+   }
 
     fun checkAnswer(answer:Boolean) {
-        val color = if (answer==questions.elementAtOrNull(_states.passPlayerDetails.Highestlevel)?.answer) { Color.GREEN } else {Color.RED}
+        val color = if (answer==questions.elementAtOrNull(_states.currentGameDetails.currentLevel)?.answer) { Color.GREEN } else {Color.RED}
         updateState(_states.copy(changeAnswerColor = color))
-        increaseOrDecreaseScore(color,50)// increase or decrease with  animation limited to 1 sec
+        increaseOrDecreaseScoreAndLevel(color,50)// increase or decrease with  animation limited to 1 sec
 
-        setTimer(1,TimeUnit.SECONDS){
-            updatePlayerDetails(50)//increase level +1 and then update question
-            updateQuestion(_states.passPlayerDetails.Highestlevel,0,60)
+        setDelay(1,TimeUnit.SECONDS){
+            getQuestion(0,60)
             val copy=_states.copy()
             copy.changeAnswerColor=Color.WHITE
             copy.enableAnswerBtns=true
@@ -181,17 +144,26 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         }
     }
 
-    private fun updatePlayerDetails(score:Int){
-
-        val tmpDetails=PlayerDetails( highestScore = _states.passPlayerDetails.highestScore+score,
-                                      Highestlevel = _states.passPlayerDetails.Highestlevel+1)
+    private fun updatePlayerDetailsWhenGameOver(){
+    //todo change this 3 lines it shouldnt be here , it should be after game is finished or closed!!
+        val tmpDetails=PlayerDetails()
+        if (_states.currentGameDetails.currentScore>_states.passPlayerDetails.highestScore)
+            tmpDetails.highestScore = _states.currentGameDetails.currentScore
+        if (_states.currentGameDetails.currentLevel>_states.passPlayerDetails.highestlevel)
+            tmpDetails.highestlevel = _states.currentGameDetails.currentLevel
         updateState(_states.copy(passPlayerDetails = tmpDetails ))
     }
 
-    private fun increaseOrDecreaseScore(color:Int,score:Int) {
+    private fun increaseOrDecreaseScoreAndLevel(color:Int, score:Int) {
         if (color==Color.GREEN){
             changeScoreAnimation(color,score)//  animation limited to 1 sec
         }
+
+        val tmpCurrentGameDetails=MainScreenState.CurrentGameDetails(
+            _states.currentGameDetails.currentScore+score,
+             _states.currentGameDetails.currentLevel+1)
+        val stateCopy=_states.copy(currentGameDetails = tmpCurrentGameDetails)
+        updateState(stateCopy)
     }
 
     private fun changeScoreAnimation(color: Int,score: Int) {
@@ -199,24 +171,11 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         updateState(_states.copy(changeAlpha = 1f))
     }
 
-    fun setTimer(time:Long,timeUnit: TimeUnit,block:()->Unit){
+    private fun setDelay(time:Long, timeUnit: TimeUnit, block:()->Unit){
         +useCases.startTimer(time,timeUnit)
             .subscribeOnIoAndObserveOnMain()
             .subscribe({ block() }){ printIfDebug(TAG,it.message) }
     }
-
-    fun saveData(){
-        val playerDetails=_states.passPlayerDetails
-        +useCases.updadatePlayerDetails(playerDetails)
-            .subscribeOnIoAndObserveOnMain()
-            .subscribe({},{ printIfDebug(TAG,it.message)})
-//        savedStateHandle.set("playerDetails", playerDetails)
-        savedStateHandle.set("level",playerDetails.Highestlevel)
-        savedStateHandle.set("score",playerDetails.highestScore)
-        savedStateHandle.set("remainingTime", remainingTime)
-        printIfDebug(TAG,"level ${playerDetails.Highestlevel} ${playerDetails.highestScore} ${remainingTime}")
-    }
-
 
     //for personal use becuse Realm studio doesn't work properly
     fun createQuestionsRepo(question: String,answer:Boolean){

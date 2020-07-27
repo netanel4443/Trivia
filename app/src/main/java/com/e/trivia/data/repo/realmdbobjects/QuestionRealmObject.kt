@@ -1,4 +1,4 @@
-package com.e.trivia.realmdbobjects
+package com.e.trivia.data.repo.realmdbobjects
 
 import io.realm.RealmObject
 import io.realm.annotations.PrimaryKey
