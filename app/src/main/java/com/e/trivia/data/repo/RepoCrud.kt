@@ -35,30 +35,49 @@ class RepoCrud(){
         }
     }
 
+    fun deletePlayerDetails(playerDetails: PlayerDetails):Completable{
+        return Completable.fromAction {
+            val realm=Realm.getInstance(RealmMainConfiguration().config())
+            realm.use {
+                val obj=  realm.where(PlayerDetailsRealmObject::class.java)
+                    .equalTo("name",playerDetails.name)
+                    .findFirst()?.deleteFromRealm()
+            }
+        }
+    }
+
+
+    fun deletePlayerDetails(playerName: String):Completable{
+        return Completable.fromAction {
+            val realm=Realm.getInstance(RealmMainConfiguration().config())
+            realm.use {
+                val obj=  realm.where(PlayerDetailsRealmObject::class.java)
+                    .equalTo("name",playerName)
+                    .findFirst()?.deleteFromRealm()
+            }
+        }
+    }
+
+
     fun savePlayerDetails(playerDetails:PlayerDetails):Completable{
         return Completable.fromAction {
             val realm=Realm.getInstance(RealmMainConfiguration().config())
+            try {
             realm.executeTransaction {
-                try {
-                    realm.where(PlayerDetailsRealmObject::class.java)
+
+                  val rlmObj=  realm.where(PlayerDetailsRealmObject::class.java)
                         .equalTo("name",playerDetails.name)
-                        .findFirst()?.deleteFromRealm()
-                    println("repo $playerDetails")
-
-
-                    val rlmObj= realm.createObject(PlayerDetailsRealmObject::class.java,playerDetails.name)
-
-                    rlmObj!!.name=playerDetails.name
-                    rlmObj.highestLevel=playerDetails.highestlevel
-                    rlmObj.diamonds=playerDetails.diamonds
-                    rlmObj.highestScore=playerDetails.highestScore
-
-                    realm.insertOrUpdate(rlmObj)
+                        .findFirst()
+                     rlmObj?.run {
+                        highestLevel=playerDetails.highestlevel
+                        diamonds=playerDetails.diamonds
+                        highestScore=playerDetails.highestScore
+                        realm.insertOrUpdate(this)
+                     }
                 }
-                catch (e:Exception){ printIfDebug("savePlayer",e.message)}
-                finally {
-                    realm?.close()
-                }
+            }  catch (e:Exception){ printIfDebug("savePlayer",e.message)}
+            finally {
+                realm?.close()
             }
         }
     }

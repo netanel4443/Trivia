@@ -83,7 +83,7 @@ class GameFragment : BaseFragment() {
 
         val configuration=now.forceRender
 
-        println("$prev \n $now")
+//        println("$prev \n $now")
 
         if (prev.currentGameDetails!=now.currentGameDetails || configuration) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}
         if (prev.newQuestion!=now.newQuestion || configuration){ updateQuestion(now.newQuestion)}

@@ -39,6 +39,10 @@ class MainScreenUseCases() {
         return questionsRepo.getQuestions()
     }
 
+    fun deletePlayerDetails(playerDetails: String):Completable{
+        return repo.deletePlayerDetails(playerDetails)
+    }
+
      fun saveOrUpdatePlayerDetails(playerDetails: PlayerDetails): Completable {
         return repo.savePlayerDetails(playerDetails)
     }

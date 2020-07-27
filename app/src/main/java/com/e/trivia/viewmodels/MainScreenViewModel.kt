@@ -183,11 +183,18 @@ class MainScreenViewModel() : BaseViewModel() {
     }
 
     fun showGameOverDialogAndUpdateDatabase(){
+        pauseTimer()// when game is over , stop timer observable.
         +useCases.saveOrUpdatePlayerDetails(updatePlayerDetailsWhenGameOver())
             .subscribeOnIoAndObserveOnMain()
             .subscribe({
                 _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentGameDetails.currentScore))
             }){ printInfoIfDebug(TAG,it.message) }
+    }
+
+    fun deletePlayerDetails(){
+        +useCases.deletePlayerDetails(_states.passPlayerDetails.name)
+            .subscribeOnIoAndObserveOnMain()
+            .subscribe({}){ printInfoIfDebug(TAG,it.message)}
     }
 
 

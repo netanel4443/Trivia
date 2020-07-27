@@ -58,14 +58,13 @@ class MainActivity : BaseAdsActivity() {
     }
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
-        println("${prev} \n $now")
+//        println("${prev} \n $now")
         val forceRender=now.forceRender
         if (prev.passPlayerDetails!=now.passPlayerDetails || forceRender){updatePlayerDetailsDetails(now.passPlayerDetails)}
         return now
     }
 
     private fun updatePlayerDetailsDetails(details:PlayerDetails) {
-            println(details)
         playerDetails.text="Name:${details.name} \n Level: ${details.highestlevel}\n Score: ${details.highestScore} \n ${details.diamonds}"
     }
 
