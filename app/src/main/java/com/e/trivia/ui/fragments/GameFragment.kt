@@ -25,7 +25,7 @@ import kotlinx.android.synthetic.main.fragment_game.*
 class GameFragment : BaseFragment() {
     private val TAG="GameFragment"
     private  val viewModel: MainScreenViewModel by activityViewModels()
-
+    private val gameOverDialog:GameOverDialog by lazy{ GameOverDialog() }
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view= inflater.inflate(R.layout.fragment_game, container, false)
 
@@ -40,6 +40,8 @@ class GameFragment : BaseFragment() {
         attachEffectsObserver()
 
         viewModel.getQuestion()
+        /*In order to make sure the screen renders, this has to be the last command
+          because LiveData always takes last given value in a row of values(setValue()) */
         viewModel.forceUpdateState()
 
         +yesAnswerBtnGameFragment.clicks().throttle().subscribe{
@@ -79,7 +81,7 @@ class GameFragment : BaseFragment() {
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
 
-        val configuration=now.isConfiguration
+        val configuration=now.forceRender
 
         println("$prev \n $now")
 
@@ -95,9 +97,17 @@ class GameFragment : BaseFragment() {
     }
 
     private fun showGameOverDialog(playerDetails: PlayerDetails,gameScore:Int) {
-        GameOverDialog().show(requireContext(),playerDetails,gameScore){
-            requireActivity().removeFragment(FragmentsTag.GAME_FRAGMEN)
-        }
+         gameOverDialog.alert?.run {
+            if (!isShowing){
+                gameOverDialog.show(requireContext(),playerDetails,gameScore){
+                    requireActivity().removeFragment(FragmentsTag.GAME_FRAGMEN)
+                }
+            }
+         }?: (
+              gameOverDialog.show(requireContext(),playerDetails,gameScore){
+                requireActivity().removeFragment(FragmentsTag.GAME_FRAGMEN)
+              }
+         )
     }
 
     private fun changeScoreTviewVisibility(visibility: Float) {
@@ -136,6 +146,16 @@ class GameFragment : BaseFragment() {
     private fun enableAnswerButtons(enabled:Boolean){
         yesAnswerBtnGameFragment.isEnabled=enabled
         noAnswerBtnGameFragment.isEnabled=enabled
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.resumeTimer()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewModel.pauseTimer()
     }
 
     override fun onStop() {

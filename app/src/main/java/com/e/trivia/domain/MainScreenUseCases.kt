@@ -27,7 +27,7 @@ class MainScreenUseCases() {
     fun timerInterval(take:Long): Observable<Long> {
         return Observable
                  .interval(1,TimeUnit.SECONDS)
-                 .take(take)
+                 .take(5)
     }
 
     // for personal use because Realm studio doesn't work properly
@@ -39,7 +39,7 @@ class MainScreenUseCases() {
         return questionsRepo.getQuestions()
     }
 
-     fun updadatePlayerDetails(playerDetails: PlayerDetails): Completable {
+     fun saveOrUpdatePlayerDetails(playerDetails: PlayerDetails): Completable {
         return repo.savePlayerDetails(playerDetails)
     }
 }

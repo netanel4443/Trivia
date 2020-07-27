@@ -13,6 +13,8 @@ import kotlinx.android.synthetic.main.game_over_dialog.view.*
 
 class GameOverDialog {
 
+    var alert:AlertDialog?=null
+
     fun show(context: Context, playerDetails:PlayerDetails, gameScore:Int, returnToMainScreen:()->Unit){
         val alertDialog=AlertDialog.Builder(context)
         val inflater=LayoutInflater.from(context)
@@ -31,16 +33,17 @@ class GameOverDialog {
         gameScoreTview.text=spanText("Score: ",gameScore.toString())
         bestScoreTview.text=spanText("Best score: ",playerDetails.highestScore.toString())
 
-        val alert=alertDialog.create()
+         alert=alertDialog.create()
 
         okBtn.setOnClickListener {
-            alert.dismiss()
+            alert!!.dismiss()
         }
         
-        alert.setOnDismissListener { returnToMainScreen() }
+        alert!!.setOnDismissListener { returnToMainScreen() }
 
-        alert.show()
+        alert!!.show()
     }
+
 
     private fun determineTextsColorAccordingToScore(playerDetails: PlayerDetails,gameScore:Int,gameScoreTview:TextView){
        val color= if  (playerDetails.highestScore>gameScore) { Color.RED } else { Color.GREEN }

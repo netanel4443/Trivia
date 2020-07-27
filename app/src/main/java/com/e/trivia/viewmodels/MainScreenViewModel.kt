@@ -3,7 +3,6 @@ package com.e.trivia.viewmodels
 import android.graphics.Color
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.SavedStateHandle
 import com.e.VoiceAssistant.utils.printIfDebug
 import com.e.VoiceAssistant.utils.printInfoIfDebug
 import com.e.VoiceAssistant.utils.rxJavaUtils.subscribeOnIoAndObserveOnMain
@@ -11,14 +10,14 @@ import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
 import com.e.trivia.domain.MainScreenUseCases
 import com.e.trivia.utils.livedata.SingleLiveEvent
-import com.e.trivia.viewmodels.states.MainScreenState
 import com.e.trivia.viewmodels.effects.MainScreenEffects
+import com.e.trivia.viewmodels.states.MainScreenState
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import java.util.concurrent.TimeUnit
 
-class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseViewModel() {
+class MainScreenViewModel() : BaseViewModel() {
     private val TAG="MainScreenViewModel"
     private val useCases=MainScreenUseCases()
 
@@ -37,13 +36,13 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
     private var takeTime:Long=60
 
     private fun updateState(_stateClone: MainScreenState){
-        _stateClone.isConfiguration=false
+        _stateClone.forceRender=false
         _states=_stateClone
         states.postValue(_states)
     }
 
     private fun forceUpdateState(stateClone: MainScreenState){
-        stateClone.isConfiguration = true
+        stateClone.forceRender = true
         states.postValue(stateClone)
     }
 
@@ -51,17 +50,17 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         forceUpdateState(_states)
     }
 
-
     fun goToGameScreen(){
         _viewEffects.value=MainScreenEffects.StartGameScreen
     }
 
     fun startGameAllQuestions(){
         _states= MainScreenState(
-            readPlayerDetails = _states.readPlayerDetails,
             passPlayerDetails = _states.passPlayerDetails
         )
-        forceUpdateState(_states)
+        //reset timer
+        remainingTime=0
+        takeTime=60
     }
 
      fun firstGameInits(){
@@ -97,9 +96,7 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         questionDisposable.add(useCases.timerInterval(take)
             .subscribeOnIoAndObserveOnMain()
             .doOnComplete {
-                printInfoIfDebug(TAG,"completed")
-                updatePlayerDetailsWhenGameOver()
-                _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentGameDetails.currentScore))
+                showGameOverDialogAndUpdateDatabase()
             }
             .subscribe({counter->
                 remainingTime=prevRemainingTime+counter+1
@@ -109,20 +106,27 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         )
     }
 
-     fun getQuestion() {
-           getQuestion(remainingTime,takeTime)
+    fun pauseTimer(){
+      questionDisposable.clear()
     }
 
-   private fun getQuestion(initialDelay: Long, take: Long) {
-        //todo no more questions logic and game over
+    fun resumeTimer(){
+      startQuestionTimer(remainingTime,takeTime)
+    }
+
+    fun getQuestion() {
+       getQuestion(remainingTime,takeTime)
+    }
+
+   private fun getQuestion(remaining: Long, take: Long) {
+        //todo when no more questions  handle game is finished
         questions.elementAtOrNull(_states.currentGameDetails.currentLevel)?.let {question->
             updateState(_states.copy(newQuestion=question))
-            startQuestionTimer(initialDelay,take)
+            startQuestionTimer(remaining,take)
         }?:let {
-           val question= Question("no more questions", true)
-        updateState( _states.copy(newQuestion = question))
+             val question= Question("no more questions", true)
+             updateState( _states.copy(newQuestion = question))
         }
-
    }
 
    fun enableAnswerBtns(enable:Boolean) {
@@ -135,7 +139,7 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         increaseOrDecreaseScoreAndLevel(color,50)// increase or decrease with  animation limited to 1 sec
 
         setDelay(1,TimeUnit.SECONDS){
-            getQuestion(0,60)
+            getQuestion(0,60)// when new question , reset timer.
             val copy=_states.copy()
             copy.changeAnswerColor=Color.WHITE
             copy.enableAnswerBtns=true
@@ -144,14 +148,15 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
         }
     }
 
-    private fun updatePlayerDetailsWhenGameOver(){
-    //todo change this 3 lines it shouldnt be here , it should be after game is finished or closed!!
-        val tmpDetails=PlayerDetails()
+    private fun updatePlayerDetailsWhenGameOver():PlayerDetails{
+
+        val tmpDetails=_states.passPlayerDetails.copy()
         if (_states.currentGameDetails.currentScore>_states.passPlayerDetails.highestScore)
             tmpDetails.highestScore = _states.currentGameDetails.currentScore
         if (_states.currentGameDetails.currentLevel>_states.passPlayerDetails.highestlevel)
             tmpDetails.highestlevel = _states.currentGameDetails.currentLevel
         updateState(_states.copy(passPlayerDetails = tmpDetails ))
+        return tmpDetails
     }
 
     private fun increaseOrDecreaseScoreAndLevel(color:Int, score:Int) {
@@ -177,7 +182,16 @@ class MainScreenViewModel(private val savedStateHandle:SavedStateHandle) : BaseV
             .subscribe({ block() }){ printIfDebug(TAG,it.message) }
     }
 
-    //for personal use becuse Realm studio doesn't work properly
+    fun showGameOverDialogAndUpdateDatabase(){
+        +useCases.saveOrUpdatePlayerDetails(updatePlayerDetailsWhenGameOver())
+            .subscribeOnIoAndObserveOnMain()
+            .subscribe({
+                _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentGameDetails.currentScore))
+            }){ printInfoIfDebug(TAG,it.message) }
+    }
+
+
+    /**for personal use becuse Realm studio(app) doesn't work properly*/
     fun createQuestionsRepo(question: String,answer:Boolean){
         +useCases.createDbOfQuestions(question,answer)
             .subscribeOnIoAndObserveOnMain()

@@ -9,6 +9,7 @@ import com.e.trivia.data.PlayerDetails
 import com.e.trivia.ui.fragments.FragmentsTag
 import com.e.trivia.ui.fragments.GameFragment
 import com.e.trivia.utils.addFragment
+import com.e.trivia.utils.handleBackPressWhenFragmentAttached
 import com.e.trivia.utils.livedata.toObservable
 import com.e.trivia.viewmodels.MainScreenViewModel
 import com.e.trivia.viewmodels.states.MainScreenState
@@ -30,6 +31,7 @@ class MainActivity : BaseAdsActivity() {
         attachCommandsObserver()
 
         viewModel.firstGameInits()
+        viewModel.forceUpdateState()
 
         startAllQuestionsGameBtn.setOnClickListener {
             viewModel.startGameAllQuestions()
@@ -56,16 +58,28 @@ class MainActivity : BaseAdsActivity() {
     }
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
-//        println("${prev} \n $now")
-        if (prev.passPlayerDetails!=now.passPlayerDetails){updatePlayerDetailsDetails(now.passPlayerDetails)}
+        println("${prev} \n $now")
+        val forceRender=now.forceRender
+        if (prev.passPlayerDetails!=now.passPlayerDetails || forceRender){updatePlayerDetailsDetails(now.passPlayerDetails)}
         return now
     }
 
     private fun updatePlayerDetailsDetails(details:PlayerDetails) {
+            println(details)
         playerDetails.text="Name:${details.name} \n Level: ${details.highestlevel}\n Score: ${details.highestScore} \n ${details.diamonds}"
     }
 
     private fun startGame() {
         addFragment(GameFragment(),R.id.frame_layout_main_screen, FragmentsTag.GAME_FRAGMEN)
+    }
+
+    override fun onBackPressed() {
+       handleBackPressWhenFragmentAttached()?.let{fragmentName->
+           if (fragmentName==FragmentsTag.GAME_FRAGMEN){
+               viewModel.showGameOverDialogAndUpdateDatabase()
+           }
+       }?:(
+        super.onBackPressed()
+        )
     }
 }

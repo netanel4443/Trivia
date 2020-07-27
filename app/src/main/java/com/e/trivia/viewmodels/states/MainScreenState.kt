@@ -14,7 +14,9 @@ data class MainScreenState(
     var changeAlpha:Float=0f,
     var updateOrSetTimer: UpdateOrSetTimer = UpdateOrSetTimer(60, 60),
     var currentGameDetails: CurrentGameDetails= CurrentGameDetails(0,0),
-    var isConfiguration:Boolean=false
+    var forceRender:Boolean=false,
+    var remainingTimer:Long=0,
+    var takeTime:Long=60
 
 ) {
     data class ChangeScoreAnimation(val color: Int,val score: Int)

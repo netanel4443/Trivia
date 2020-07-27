@@ -21,6 +21,7 @@ class QuestionsRepo {
 
                 questionObj.forEach {
                     questions.add(Question(it.question,it.answer))
+                    println(it)
                 }
             }
             questions

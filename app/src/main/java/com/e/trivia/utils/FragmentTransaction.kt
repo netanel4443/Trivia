@@ -16,6 +16,22 @@ inline fun FragmentManager.transaction(func: FragmentTransaction.() -> FragmentT
     beginTransaction().func().commit()
 }
 
+/**
+ * cheks if fragment's backStack is empty or not.
+ * if empty, then, return null
+ * else return fragment's name as supplied to
+ * [androidx.fragment.app.FragmentTransaction#addToBackStack(String)]
+ * @return fragment's tag or null if no fragments in backStack
+ */
+fun AppCompatActivity.handleBackPressWhenFragmentAttached():String?{
+    val fragmentManager=supportFragmentManager
+    val backStackCount=fragmentManager.backStackEntryCount
+    if (backStackCount!=0){
+     return fragmentManager.getBackStackEntryAt(fragmentManager.backStackEntryCount-1 ).name
+    }
+    return null
+}
+
 fun FragmentActivity.removeFragment(tag: String){
     val fragmentt =supportFragmentManager.findFragmentByTag(tag)
     supportFragmentManager.beginTransaction().remove(fragmentt!!).commit()

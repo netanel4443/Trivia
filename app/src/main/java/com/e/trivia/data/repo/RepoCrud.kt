@@ -19,16 +19,16 @@ class RepoCrud(){
            val realm= Realm.getInstance(RealmMainConfiguration().config())
            val playerDetails=PlayerDetails()
 
-           val k= realm.use {
+           realm.use {
                 val realmObject =
                     realm.where(PlayerDetailsRealmObject::class.java)
                         .findFirst()
 
                 realmObject?.let { details->
-                    playerDetails.highestlevel=details.level
-                    playerDetails.highestScore=details.score
+                    playerDetails.highestlevel=details.highestLevel
+                    playerDetails.highestScore=details.highestScore
                     playerDetails.name=details.name
-                    playerDetails.diamonds=details.coins
+                    playerDetails.diamonds=details.diamonds
                 }
             }
            playerDetails
@@ -40,14 +40,25 @@ class RepoCrud(){
             val realm=Realm.getInstance(RealmMainConfiguration().config())
             realm.executeTransaction {
                 try {
-                    var rlmObj= realm.where(PlayerDetailsRealmObject::class.java)
+                    realm.where(PlayerDetailsRealmObject::class.java)
                         .equalTo("name",playerDetails.name)
-                        .findFirst()
-                    if (rlmObj==null){
-                        rlmObj= realm.createObject(PlayerDetailsRealmObject::class.java,playerDetails.name)
-                    }
+                        .findFirst()?.deleteFromRealm()
+                    println("repo $playerDetails")
+
+
+                    val rlmObj= realm.createObject(PlayerDetailsRealmObject::class.java,playerDetails.name)
+
+                    rlmObj!!.name=playerDetails.name
+                    rlmObj.highestLevel=playerDetails.highestlevel
+                    rlmObj.diamonds=playerDetails.diamonds
+                    rlmObj.highestScore=playerDetails.highestScore
+
                     realm.insertOrUpdate(rlmObj)
-                }catch (e:Exception){ printIfDebug("savePlayer",e.message)}
+                }
+                catch (e:Exception){ printIfDebug("savePlayer",e.message)}
+                finally {
+                    realm?.close()
+                }
             }
         }
     }
