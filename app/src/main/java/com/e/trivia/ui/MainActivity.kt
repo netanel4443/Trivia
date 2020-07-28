@@ -3,10 +3,11 @@ package com.e.trivia.ui
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.lifecycle.Observer
-import com.e.VoiceAssistant.utils.printIfDebug
 import com.e.VoiceAssistant.utils.printInfoIfDebug
+import com.e.VoiceAssistant.utils.toast
 import com.e.trivia.R
 import com.e.trivia.data.PlayerDetails
+import com.e.trivia.ui.dialogs.CustomGameDialog
 import com.e.trivia.ui.fragments.FragmentsTag
 import com.e.trivia.ui.fragments.GameFragment
 import com.e.trivia.utils.addFragment
@@ -19,9 +20,11 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : BaseAdsActivity() {
-    private val TAG="MainActivity"
 
+    private val TAG="MainActivity"
+    private val customGameDialog:CustomGameDialog by lazy{ CustomGameDialog(this) }
     private val viewModel: MainScreenViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -36,7 +39,9 @@ class MainActivity : BaseAdsActivity() {
 
         startAllQuestionsGameBtn.setOnClickListener {
             viewModel.startGameAllQuestions()
-            viewModel.goToGameScreen()
+        }
+        custom_game_main_screen.setOnClickListener {
+            viewModel.showCustomGameDialog()
         }
 
         /**this is only for personal user , Realm studio doesn't work properly so i need to
@@ -48,9 +53,14 @@ class MainActivity : BaseAdsActivity() {
         viewModel.viewEffects.observe(this, Observer{ effect->
             when(effect){
                 is MainScreenEffects.StartGameScreen -> startGame()
+                is MainScreenEffects.ShowCustomGameDialog ->showCustomGameDialog(effect.maxNumberOfQuestions)
+                is MainScreenEffects.CustomDialogGameCommentToUser-> customDialogGameCommentToUser(effect.comment)
+                is MainScreenEffects.DissmissCustomGameDialog-> dissmissCustomGameDialog()
             }
         })
     }
+
+
 
     private fun attachStatesObserver() {
         +viewModel.states.toObservable(this)
@@ -59,7 +69,7 @@ class MainActivity : BaseAdsActivity() {
     }
 
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
-        println("${prev} \n $now")
+//        println("${prev} \n $now")
         val forceRender=now.forceRender>prev.forceRender
 
         if (prev.passPlayerDetails!=now.passPlayerDetails || forceRender){updatePlayerDetailsDetails(now.passPlayerDetails)}
@@ -72,6 +82,20 @@ class MainActivity : BaseAdsActivity() {
 
     private fun startGame() {
         addFragment(GameFragment(),R.id.frame_layout_main_screen, FragmentsTag.GAME_FRAGMEN)
+    }
+
+    private fun showCustomGameDialog(maxNumberOfQuestions:Int){
+        customGameDialog.show(this,maxNumberOfQuestions.toString()){
+            viewModel.startCustomGame(it)
+        }
+    }
+
+    private fun customDialogGameCommentToUser(comment:String){
+        toast(comment)
+    }
+
+    private fun dissmissCustomGameDialog() {
+        customGameDialog.dismiss()
     }
 
     override fun onBackPressed() {

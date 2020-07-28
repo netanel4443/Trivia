@@ -26,6 +26,7 @@ class GameFragment : BaseFragment() {
     private val TAG="GameFragment"
     private  val viewModel: MainScreenViewModel by activityViewModels()
     private val gameOverDialog:GameOverDialog by lazy{ GameOverDialog() }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view= inflater.inflate(R.layout.fragment_game, container, false)
 
@@ -40,9 +41,8 @@ class GameFragment : BaseFragment() {
         attachEffectsObserver()
 
         viewModel.getQuestion()
-        /*In order to make sure the screen renders, this has to be the last command
-          because LiveData always takes last given value in a row of values(setValue()) */
         viewModel.forceUpdateState()
+
 
         +yesAnswerBtnGameFragment.clicks().throttle().subscribe{
             viewModel.checkAnswer(true)
@@ -82,7 +82,7 @@ class GameFragment : BaseFragment() {
     private fun renderState(prev: MainScreenState, now: MainScreenState): MainScreenState {
 
         val forceRender=now.forceRender!=prev.forceRender
-        println("forcerender $forceRender")
+//        println("forcerender $forceRender")
 //        println("$prev \n $now")
 
         if (prev.currentGameDetails!=now.currentGameDetails || forceRender) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}

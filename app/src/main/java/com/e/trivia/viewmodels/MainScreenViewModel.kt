@@ -9,6 +9,7 @@ import com.e.VoiceAssistant.utils.rxJavaUtils.subscribeOnIoAndObserveOnMain
 import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
 import com.e.trivia.domain.MainScreenUseCases
+import com.e.trivia.utils.collection.take
 import com.e.trivia.utils.livedata.SingleLiveEvent
 import com.e.trivia.viewmodels.effects.MainScreenEffects
 import com.e.trivia.viewmodels.states.MainScreenState
@@ -31,7 +32,8 @@ class MainScreenViewModel() : BaseViewModel() {
     val viewEffects:LiveData<MainScreenEffects> get() = _viewEffects
 
     private var questionDisposable=CompositeDisposable()
-    private val questions= ArrayList<Question>()
+    private val questionsFromDB= ArrayList<Question>()
+    private var questions=ArrayList<Question>()
     private var remainingTime:Long=0
     private var takeTime:Long=60
 
@@ -56,20 +58,44 @@ class MainScreenViewModel() : BaseViewModel() {
             forceRender = _states.forceRender
         )
         //reset timer
+        questions=questionsFromDB
+        questions.shuffle()
         remainingTime=0
         takeTime=60
+        goToGameScreen()
+    }
+
+    fun showCustomGameDialog(){
+       _viewEffects.value=MainScreenEffects.ShowCustomGameDialog(questionsFromDB.size)
+    }
+
+    fun startCustomGame(numberOfQuestions:Int?){
+        if (numberOfQuestions==null || numberOfQuestions>questionsFromDB.size || numberOfQuestions<=0 ) {
+            val comment= "choose a number from 1 to ${questionsFromDB.size}"
+            _viewEffects.value=MainScreenEffects.CustomDialogGameCommentToUser(comment)
+        }
+        else{
+            _states= MainScreenState(
+                passPlayerDetails = _states.passPlayerDetails,
+                forceRender = _states.forceRender
+            )
+            //reset timer
+            remainingTime=0
+            takeTime=60
+            questionsFromDB.shuffle()
+            questions=questionsFromDB.take(numberOfQuestions)
+            _viewEffects.value=MainScreenEffects.DissmissCustomGameDialog
+            goToGameScreen()
+        }
     }
 
      fun firstGameInits(){
-        if (questions.isEmpty()) {
+        if (questionsFromDB.isEmpty()) {
             val detailsOb = useCases.getPlayerDetails().toObservable()
-                .doOnNext {
-                    updateState(_states.copy(passPlayerDetails = it))
-                }
+                .doOnNext { updateState(_states.copy(passPlayerDetails = it)) }
+
             val questionsOb = useCases.getQuestions().toObservable()
-                .doOnNext {
-                    questions.addAll(it)
-                }
+                .doOnNext { questionsFromDB.addAll(it) }
 
             val obArray = arrayOf(detailsOb, questionsOb)
 
@@ -82,7 +108,7 @@ class MainScreenViewModel() : BaseViewModel() {
     private fun getQuestionsFromDb(): Single<ArrayList<Question>> {
         return useCases.getQuestions()
             .doOnSuccess {
-                questions.addAll(it)
+                questionsFromDB.addAll(it)
                 printIfDebug(TAG,"$it")
             }
     }
@@ -117,13 +143,14 @@ class MainScreenViewModel() : BaseViewModel() {
 
    private fun getQuestion(remaining: Long, take: Long) {
         //todo when no more questions  handle game is finished
-        questions.elementAtOrNull(_states.currentGameDetails.currentLevel)?.let {question->
+       questions.elementAtOrNull(_states.currentGameDetails.currentLevel)?.let { question->
             updateState(_states.copy(newQuestion=question))
             startQuestionTimer(remaining,take)
-        }?:let {
-             val question= Question("no more questions", true)
-             updateState( _states.copy(newQuestion = question))
-        }
+       }?:let {
+          showGameOverDialogAndUpdateDatabase()
+       }
+       //enable answer buttons back only after these operations,to prevent increase/decrease score
+       updateState(_states.copy(enableAnswerBtns = true))
    }
 
    fun enableAnswerBtns(enable:Boolean) {
@@ -139,7 +166,6 @@ class MainScreenViewModel() : BaseViewModel() {
             getQuestion(0,60)// when new question , reset timer.
             val copy=_states.copy()
             copy.changeAnswerColor=Color.WHITE
-            copy.enableAnswerBtns=true
             copy.changeAlpha=0f
             updateState(copy)
         }

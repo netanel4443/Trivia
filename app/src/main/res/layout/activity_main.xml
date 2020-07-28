@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/question"
+    android:background="@drawable/question2"
     tools:context=".ui.MainActivity">
 <androidx.constraintlayout.widget.ConstraintLayout
     android:layout_width="match_parent"
@@ -36,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/earnCoinsBtn"
                 android:textAllCaps="false"
-                android:text="Earn coins"
+                android:text="Earn diamonds"
                 android:textColor="#03A9F4"
                 android:background="@null"
                 android:layout_gravity="center" />
@@ -59,7 +59,7 @@
     <Button
         android:layout_width="200dp"
         android:layout_height="50dp"
-        android:id="@+id/chooseNumberOfquestionsGame"
+        android:id="@+id/custom_game_main_screen"
         android:text="create game"
         android:background="@drawable/start_game_btn_design"
         app:layout_constraintLeft_toLeftOf="parent"

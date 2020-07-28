@@ -5,7 +5,6 @@ import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
 
 data class MainScreenState(
-    var readPlayerDetails:PlayerDetails=PlayerDetails(),
     var passPlayerDetails:PlayerDetails= PlayerDetails(),
     var newQuestion:Question= Question("",false),
     var enableAnswerBtns:Boolean= true,

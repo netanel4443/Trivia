@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.fragments.GameFragment"
-    android:background="@drawable/question"
+    android:background="@drawable/question2"
     android:clickable="true">
 
     <LinearLayout
