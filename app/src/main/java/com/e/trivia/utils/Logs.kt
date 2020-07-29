@@ -10,13 +10,17 @@ fun printIfDebug(TAG: String?, message:String?){
 }
 
 fun printErrorIfDebug(TAG: String?, message:String?){
-    if (DBG){  Log.e(TAG,message)}
+    if (DBG){  Log.e(TAG,message) }
 }
 
 fun printInfoIfDebug(TAG: String?, message:String?){
-    if (DBG){  Log.i(TAG,message)}
+    if (DBG){  Log.i(TAG,message) }
+}
+
+fun printWarnIfDebug(TAG: String?, message:String?){
+    if (DBG){  Log.w(TAG,message) }
 }
 
 fun printDebugIfDebug(TAG: String?, message:String?){
-    if (DBG){  Log.d(TAG,message)}
+    if (DBG){  Log.d(TAG,message) }
 }

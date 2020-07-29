@@ -3,6 +3,7 @@ package com.e.trivia.viewmodels
 import android.graphics.Color
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.e.VoiceAssistant.utils.printErrorIfDebug
 import com.e.VoiceAssistant.utils.printIfDebug
 import com.e.VoiceAssistant.utils.printInfoIfDebug
 import com.e.VoiceAssistant.utils.rxJavaUtils.subscribeOnIoAndObserveOnMain
@@ -146,11 +147,10 @@ class MainScreenViewModel() : BaseViewModel() {
        questions.elementAtOrNull(_states.currentGameDetails.currentLevel)?.let { question->
             updateState(_states.copy(newQuestion=question))
             startQuestionTimer(remaining,take)
+            enableAnswerBtns(true)
        }?:let {
           showGameOverDialogAndUpdateDatabase()
        }
-       //enable answer buttons back only after these operations,to prevent increase/decrease score
-       updateState(_states.copy(enableAnswerBtns = true))
    }
 
    fun enableAnswerBtns(enable:Boolean) {
@@ -182,14 +182,17 @@ class MainScreenViewModel() : BaseViewModel() {
         return tmpDetails
     }
 
-    private fun increaseOrDecreaseScoreAndLevel(color:Int, score:Int) {
+    private fun increaseOrDecreaseScoreAndLevel(color:Int, additionalScore:Int) {
+        var score=_states.currentGameDetails.currentScore
         if (color==Color.GREEN){
-            changeScoreAnimation(color,score)//  animation limited to 1 sec
+            changeScoreAnimation(color,additionalScore)//  animation limited to 1 sec
+            score += additionalScore
         }
 
         val tmpCurrentGameDetails=MainScreenState.CurrentGameDetails(
-            _states.currentGameDetails.currentScore+score,
-             _states.currentGameDetails.currentLevel+1)
+             currentScore = score,
+             currentLevel = _states.currentGameDetails.currentLevel+1
+        )
         val stateCopy=_states.copy(currentGameDetails = tmpCurrentGameDetails)
         updateState(stateCopy)
     }
@@ -202,7 +205,7 @@ class MainScreenViewModel() : BaseViewModel() {
     private fun setDelay(time:Long, timeUnit: TimeUnit, block:()->Unit){
         +useCases.startTimer(time,timeUnit)
             .subscribeOnIoAndObserveOnMain()
-            .subscribe({ block() }){ printIfDebug(TAG,it.message) }
+            .subscribe({ block() }){ printErrorIfDebug(TAG,it.message) }
     }
 
     fun showGameOverDialogAndUpdateDatabase(){
@@ -211,7 +214,13 @@ class MainScreenViewModel() : BaseViewModel() {
             .subscribeOnIoAndObserveOnMain()
             .subscribe({
                 _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentGameDetails.currentScore))
-            }){ printInfoIfDebug(TAG,it.message) }
+            }){ printErrorIfDebug(TAG,it.message) }
+    }
+
+    fun updatePlayerDetailsDataBase(){
+        +useCases.saveOrUpdatePlayerDetails(updatePlayerDetailsWhenGameOver())
+            .subscribeOnIoAndObserveOnMain()
+            .subscribe({}){ printErrorIfDebug(TAG,it.message)}
     }
 
     fun deletePlayerDetails(){
@@ -220,8 +229,7 @@ class MainScreenViewModel() : BaseViewModel() {
             .subscribe({}){ printInfoIfDebug(TAG,it.message)}
     }
 
-
-    /**for personal use becuse Realm studio(app) doesn't work properly*/
+    /**for personal use because Realm studio(app) doesn't work properly*/
     fun createQuestionsRepo(question: String,answer:Boolean){
         +useCases.createDbOfQuestions(question,answer)
             .subscribeOnIoAndObserveOnMain()

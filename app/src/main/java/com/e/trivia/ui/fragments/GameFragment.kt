@@ -85,6 +85,7 @@ class GameFragment : BaseFragment() {
 //        println("forcerender $forceRender")
 //        println("$prev \n $now")
 
+        if (prev.passPlayerDetails.diamonds!=now.passPlayerDetails.diamonds || forceRender) { updateDiamondsAmount(now.passPlayerDetails.diamonds) }
         if (prev.currentGameDetails!=now.currentGameDetails || forceRender) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}
         if (prev.newQuestion!=now.newQuestion || forceRender){ updateQuestion(now.newQuestion)}
         if (prev.enableAnswerBtns!=now.enableAnswerBtns || forceRender){ enableAnswerButtons(now.enableAnswerBtns)}
@@ -94,6 +95,10 @@ class GameFragment : BaseFragment() {
 //        if (prev.updateOrSetTimer!=now.updateOrSetTimer || configuration){ updateTime(now.updateOrSetTimer.timeInterval,now.updateOrSetTimer.take)}
 
         return now
+    }
+
+    private fun updateDiamondsAmount(diamonds: Int) {
+        diamondsGameFragmentsTview.text="diamonds: $diamonds"
     }
 
     private fun showGameOverDialog(playerDetails: PlayerDetails,gameScore:Int) {
@@ -139,8 +144,8 @@ class GameFragment : BaseFragment() {
     }
 
     private fun passedPlayerDetailsFromActivity(score:Int,level:Int) {
-        scoreGameFragmentsTview.text="Score: "+score
-        levelGameFragmentsTview.text="level: "+level
+        scoreGameFragmentsTview.text="Score: $score"
+        levelGameFragmentsTview.text="level: $level"
     }
 
     private fun enableAnswerButtons(enabled:Boolean){

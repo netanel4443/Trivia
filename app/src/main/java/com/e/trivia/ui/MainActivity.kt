@@ -31,6 +31,8 @@ class MainActivity : BaseAdsActivity() {
 
         supportActionBar?.hide()
 
+        uiInits()
+
         attachEffectsObserver()
         attachStatesObserver()
 
@@ -44,9 +46,13 @@ class MainActivity : BaseAdsActivity() {
             viewModel.showCustomGameDialog()
         }
 
-        /**this is only for personal user , Realm studio doesn't work properly so i need to
-           create first template*/
+        /**this is only for personal use , Realm studio(external application)
+           doesn't work properly so we need to create first template*/
         //    viewModel.createQuestionsRepo("fake",true)
+    }
+
+    private fun uiInits() {
+       loadAd(adContainer,fakeUnitId)
     }
 
     private fun attachEffectsObserver() {
@@ -59,8 +65,6 @@ class MainActivity : BaseAdsActivity() {
             }
         })
     }
-
-
 
     private fun attachStatesObserver() {
         +viewModel.states.toObservable(this)
@@ -77,7 +81,10 @@ class MainActivity : BaseAdsActivity() {
     }
 
     private fun updatePlayerDetailsDetails(details:PlayerDetails) {
-        playerDetails.text="Name:${details.name} \n Level: ${details.highestlevel}\n Score: ${details.highestScore} \n ${details.diamonds}"
+        playerDetails.text="Name:${details.name} \n " +
+                "Level: ${details.highestlevel}\n " +
+                "Score: " + "${details.highestScore} \n " +
+                "diamonds: ${details.diamonds}"
     }
 
     private fun startGame() {
@@ -106,5 +113,10 @@ class MainActivity : BaseAdsActivity() {
        }?:(
         super.onBackPressed()
         )
+    }
+
+    override fun onStop() {
+        viewModel.updatePlayerDetailsDataBase()
+        super.onStop()
     }
 }
