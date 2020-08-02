@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import com.e.VoiceAssistant.utils.printIfDebug
@@ -15,6 +16,7 @@ import com.e.trivia.data.Question
 import com.e.trivia.ui.dialogs.GameOverDialog
 import com.e.trivia.utils.livedata.toObservable
 import com.e.trivia.utils.removeFragment
+import com.e.trivia.utils.toast
 import com.e.trivia.viewmodels.MainScreenViewModel
 import com.e.trivia.viewmodels.states.MainScreenState
 import com.e.trivia.viewmodels.effects.MainScreenEffects
@@ -53,6 +55,9 @@ class GameFragment : BaseFragment() {
             viewModel.checkAnswer(false)
             viewModel.enableAnswerBtns(false) // don't forget to enable back
         }
+        +addTimeBtnGameFragment.clicks().throttle().subscribe{
+            viewModel.addTimeToCurrentTime()
+        }
 
     }
 
@@ -74,6 +79,7 @@ class GameFragment : BaseFragment() {
         viewModel.viewEffects.observe(viewLifecycleOwner, Observer {effect->
             when(effect){
                 is MainScreenEffects.ShowGameOverDialog->showGameOverDialog(effect.playerDetails,effect.gameScore)
+                is MainScreenEffects.Toast-> toast(effect.message)
             }
         })
     }
@@ -85,7 +91,7 @@ class GameFragment : BaseFragment() {
 //        println("forcerender $forceRender")
 //        println("$prev \n $now")
 
-        if (prev.passPlayerDetails.diamonds!=now.passPlayerDetails.diamonds || forceRender) { updateDiamondsAmount(now.passPlayerDetails.diamonds) }
+        if (prev.playerDetails.diamonds!=now.playerDetails.diamonds || forceRender) { updateDiamondsAmount(now.playerDetails.diamonds) }
         if (prev.currentGameDetails!=now.currentGameDetails || forceRender) { passedPlayerDetailsFromActivity(now.currentGameDetails.currentScore,now.currentGameDetails.currentLevel)}
         if (prev.newQuestion!=now.newQuestion || forceRender){ updateQuestion(now.newQuestion)}
         if (prev.enableAnswerBtns!=now.enableAnswerBtns || forceRender){ enableAnswerButtons(now.enableAnswerBtns)}
@@ -98,7 +104,7 @@ class GameFragment : BaseFragment() {
     }
 
     private fun updateDiamondsAmount(diamonds: Int) {
-        diamondsGameFragmentsTview.text="diamonds: $diamonds"
+        diamondsGameFragmentsTview.text=": $diamonds"
     }
 
     private fun showGameOverDialog(playerDetails: PlayerDetails,gameScore:Int) {
@@ -161,9 +167,5 @@ class GameFragment : BaseFragment() {
     override fun onPause() {
         super.onPause()
         viewModel.pauseTimer()
-    }
-
-    override fun onStop() {
-        super.onStop()
     }
 }

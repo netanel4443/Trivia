@@ -4,9 +4,10 @@ import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.lifecycle.Observer
 import com.e.VoiceAssistant.utils.printInfoIfDebug
-import com.e.VoiceAssistant.utils.toast
+import com.e.trivia.utils.toast
 import com.e.trivia.R
 import com.e.trivia.data.PlayerDetails
+import com.e.trivia.ui.ads.InterstitialAds
 import com.e.trivia.ui.dialogs.CustomGameDialog
 import com.e.trivia.ui.fragments.FragmentsTag
 import com.e.trivia.ui.fragments.GameFragment
@@ -24,6 +25,7 @@ class MainActivity : BaseAdsActivity() {
     private val TAG="MainActivity"
     private val customGameDialog:CustomGameDialog by lazy{ CustomGameDialog(this) }
     private val viewModel: MainScreenViewModel by viewModels()
+    private lateinit var interstitialAd:InterstitialAds
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +33,7 @@ class MainActivity : BaseAdsActivity() {
 
         supportActionBar?.hide()
 
-        uiInits()
+        AdsInits()
 
         attachEffectsObserver()
         attachStatesObserver()
@@ -46,13 +48,19 @@ class MainActivity : BaseAdsActivity() {
             viewModel.showCustomGameDialog()
         }
 
+        earnCoinsBtn.setOnClickListener { interstitialAd.show() }
+
         /**this is only for personal use , Realm studio(external application)
            doesn't work properly so we need to create first template*/
         //    viewModel.createQuestionsRepo("fake",true)
     }
 
-    private fun uiInits() {
+    private fun AdsInits() {
        loadAd(adContainer,fakeUnitId)
+       interstitialAd= InterstitialAds(this)
+       interstitialAd.onClosedAction={
+           viewModel.incOrDecDiamonds(1)
+        }
     }
 
     private fun attachEffectsObserver() {
@@ -76,7 +84,7 @@ class MainActivity : BaseAdsActivity() {
 //        println("${prev} \n $now")
         val forceRender=now.forceRender>prev.forceRender
 
-        if (prev.passPlayerDetails!=now.passPlayerDetails || forceRender){updatePlayerDetailsDetails(now.passPlayerDetails)}
+        if (prev.playerDetails!=now.playerDetails || forceRender){updatePlayerDetailsDetails(now.playerDetails)}
         return now
     }
 
@@ -110,9 +118,7 @@ class MainActivity : BaseAdsActivity() {
            if (fragmentName==FragmentsTag.GAME_FRAGMEN){
                viewModel.showGameOverDialogAndUpdateDatabase()
            }
-       }?:(
-        super.onBackPressed()
-        )
+       }?:( super.onBackPressed() )
     }
 
     override fun onStop() {

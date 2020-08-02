@@ -5,7 +5,7 @@ import com.e.trivia.data.PlayerDetails
 import com.e.trivia.data.Question
 
 data class MainScreenState(
-    var passPlayerDetails:PlayerDetails= PlayerDetails(),
+    var playerDetails:PlayerDetails= PlayerDetails(),
     var newQuestion:Question= Question("",false),
     var enableAnswerBtns:Boolean= true,
     var changeAnswerColor:Int= Color.WHITE,
@@ -15,7 +15,8 @@ data class MainScreenState(
     var currentGameDetails: CurrentGameDetails= CurrentGameDetails(0,0),
     var forceRender:Int=0,
     var remainingTimer:Long=0,
-    var takeTime:Long=60
+    var takeTime:Long=60,
+    var diamonds:Int=0
 
 ) {
     data class ChangeScoreAnimation(val color: Int,val score: Int)

@@ -31,12 +31,12 @@ class MainScreenViewModel() : BaseViewModel() {
 
     private val _viewEffects=SingleLiveEvent<MainScreenEffects>()
     val viewEffects:LiveData<MainScreenEffects> get() = _viewEffects
-
+    private val QUESTION_TIME:Long=60
     private var questionDisposable=CompositeDisposable()
     private val questionsFromDB= ArrayList<Question>()
     private var questions=ArrayList<Question>()
-    private var remainingTime:Long=0
-    private var takeTime:Long=60
+    private var elapsedTime:Long=0
+    private var timeLeft:Long=QUESTION_TIME
 
     private fun updateState(_stateClone: MainScreenState){
         _states=_stateClone
@@ -55,14 +55,14 @@ class MainScreenViewModel() : BaseViewModel() {
 
     fun startGameAllQuestions(){
         _states= MainScreenState(
-            passPlayerDetails = _states.passPlayerDetails,
+            playerDetails = _states.playerDetails,
             forceRender = _states.forceRender
         )
         //reset timer
         questions=questionsFromDB
         questions.shuffle()
-        remainingTime=0
-        takeTime=60
+        elapsedTime=0
+        timeLeft=QUESTION_TIME
         goToGameScreen()
     }
 
@@ -77,12 +77,12 @@ class MainScreenViewModel() : BaseViewModel() {
         }
         else{
             _states= MainScreenState(
-                passPlayerDetails = _states.passPlayerDetails,
+                playerDetails = _states.playerDetails,
                 forceRender = _states.forceRender
             )
             //reset timer
-            remainingTime=0
-            takeTime=60
+            elapsedTime=0
+            timeLeft=QUESTION_TIME
             questionsFromDB.shuffle()
             questions=questionsFromDB.take(numberOfQuestions)
             _viewEffects.value=MainScreenEffects.DissmissCustomGameDialog
@@ -93,7 +93,7 @@ class MainScreenViewModel() : BaseViewModel() {
      fun firstGameInits(){
         if (questionsFromDB.isEmpty()) {
             val detailsOb = useCases.getPlayerDetails().toObservable()
-                .doOnNext { updateState(_states.copy(passPlayerDetails = it)) }
+                .doOnNext { updateState(_states.copy(playerDetails = it)) }
 
             val questionsOb = useCases.getQuestions().toObservable()
                 .doOnNext { questionsFromDB.addAll(it) }
@@ -114,18 +114,19 @@ class MainScreenViewModel() : BaseViewModel() {
             }
     }
 
-    fun startQuestionTimer(prevRemainingTime:Long, take:Long){
-        var progress:Long=0
-        questionDisposable.clear() // clear previous timer Observable
-        questionDisposable.add(useCases.timerInterval(take)
+    fun startQuestionTimer(prevElapsedTime:Long, prevTimeLeft:Long){
+
+        pauseTimer() // clear previous timer Observable
+        questionDisposable.add(useCases.timerInterval(prevTimeLeft)
             .subscribeOnIoAndObserveOnMain()
             .doOnComplete {
                 showGameOverDialogAndUpdateDatabase()
             }
             .subscribe({counter->
-                remainingTime=prevRemainingTime+counter+1
-                progress=60-remainingTime
-                _timerState.value=progress.toInt()
+                elapsedTime=prevElapsedTime+counter+1
+                timeLeft=QUESTION_TIME-elapsedTime
+                _timerState.value=timeLeft.toInt()
+                println(counter)
             },{})
         )
     }
@@ -135,11 +136,11 @@ class MainScreenViewModel() : BaseViewModel() {
     }
 
     fun resumeTimer(){
-      startQuestionTimer(remainingTime,takeTime)
+      startQuestionTimer(elapsedTime,timeLeft)
     }
 
     fun getQuestion() {
-       getQuestion(remainingTime,takeTime)
+       getQuestion(elapsedTime,timeLeft)
     }
 
    private fun getQuestion(remaining: Long, take: Long) {
@@ -163,7 +164,7 @@ class MainScreenViewModel() : BaseViewModel() {
         increaseOrDecreaseScoreAndLevel(color,50)// increase or decrease with  animation limited to 1 sec
 
         setDelay(1,TimeUnit.SECONDS){
-            getQuestion(0,60)// when new question , reset timer.
+            getQuestion(0,QUESTION_TIME)// when new question , reset timer.
             val copy=_states.copy()
             copy.changeAnswerColor=Color.WHITE
             copy.changeAlpha=0f
@@ -173,12 +174,12 @@ class MainScreenViewModel() : BaseViewModel() {
 
     private fun updatePlayerDetailsWhenGameOver():PlayerDetails{
 
-        val tmpDetails=_states.passPlayerDetails.copy()
-        if (_states.currentGameDetails.currentScore>_states.passPlayerDetails.highestScore)
+        val tmpDetails=_states.playerDetails.copy()
+        if (_states.currentGameDetails.currentScore>_states.playerDetails.highestScore)
             tmpDetails.highestScore = _states.currentGameDetails.currentScore
-        if (_states.currentGameDetails.currentLevel>_states.passPlayerDetails.highestlevel)
+        if (_states.currentGameDetails.currentLevel>_states.playerDetails.highestlevel)
             tmpDetails.highestlevel = _states.currentGameDetails.currentLevel
-        updateState(_states.copy(passPlayerDetails = tmpDetails ))
+        updateState(_states.copy(playerDetails = tmpDetails ))
         return tmpDetails
     }
 
@@ -202,10 +203,33 @@ class MainScreenViewModel() : BaseViewModel() {
         updateState(_states.copy(changeAlpha = 1f))
     }
 
+    fun incOrDecDiamonds(amount:Int){
+        val tmpPlayerDetails=_states.playerDetails.copy()
+        tmpPlayerDetails.diamonds+=amount
+        updateState(_states.copy(playerDetails =tmpPlayerDetails ))
+    }
+
     private fun setDelay(time:Long, timeUnit: TimeUnit, block:()->Unit){
         +useCases.startTimer(time,timeUnit)
             .subscribeOnIoAndObserveOnMain()
             .subscribe({ block() }){ printErrorIfDebug(TAG,it.message) }
+    }
+    /**when a user presses on "add time" , check how many time to add. max time equals to [MAX_TIME_TO_ADD]**/
+    fun addTimeToCurrentTime() {
+        if (_states.playerDetails.diamonds>0) {
+            pauseTimer()
+            var extraTime = QUESTION_TIME - timeLeft
+            if (extraTime > 20) {
+                extraTime = 20
+            }
+            elapsedTime -= extraTime
+            timeLeft += extraTime
+            startQuestionTimer(elapsedTime, timeLeft)
+            incOrDecDiamonds(-1)//decrease
+        }
+        else{
+            _viewEffects.value=MainScreenEffects.Toast("not enough diamonds")
+        }
     }
 
     fun showGameOverDialogAndUpdateDatabase(){
@@ -213,7 +237,7 @@ class MainScreenViewModel() : BaseViewModel() {
         +useCases.saveOrUpdatePlayerDetails(updatePlayerDetailsWhenGameOver())
             .subscribeOnIoAndObserveOnMain()
             .subscribe({
-                _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.passPlayerDetails,_states.currentGameDetails.currentScore))
+                _viewEffects.value=(MainScreenEffects.ShowGameOverDialog(_states.playerDetails,_states.currentGameDetails.currentScore))
             }){ printErrorIfDebug(TAG,it.message) }
     }
 
@@ -224,7 +248,7 @@ class MainScreenViewModel() : BaseViewModel() {
     }
 
     fun deletePlayerDetails(){
-        +useCases.deletePlayerDetails(_states.passPlayerDetails.name)
+        +useCases.deletePlayerDetails(_states.playerDetails.name)
             .subscribeOnIoAndObserveOnMain()
             .subscribe({}){ printInfoIfDebug(TAG,it.message)}
     }
@@ -240,4 +264,6 @@ class MainScreenViewModel() : BaseViewModel() {
         super.onCleared()
         questionDisposable.clear()
     }
+
+
 }

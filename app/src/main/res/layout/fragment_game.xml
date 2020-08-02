@@ -68,6 +68,21 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/cardDetailsGameFragment"
         app:layout_constraintBottom_toTopOf="@+id/questionGameFragment"/>
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:id="@+id/addTimeBtnGameFragment"
+        android:background="@drawable/add_time_btn_design"
+        android:fontFamily="@font/bellefair"
+        android:textAllCaps="false"
+        android:text="Add time"
+        android:textSize="15sp"
+        android:drawablePadding="5dp"
+        android:drawableEnd="@drawable/diamonds_v24"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/timerProgressBarGameFragment"
+        app:layout_constraintTop_toBottomOf="@+id/cardDetailsGameFragment"
+        app:layout_constraintBottom_toTopOf="@+id/questionGameFragment"/>
 
     <TextView
         android:layout_width="wrap_content"

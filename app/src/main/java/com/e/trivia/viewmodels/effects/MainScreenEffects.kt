@@ -7,5 +7,7 @@ sealed class MainScreenEffects {
     data class ShowGameOverDialog(val playerDetails: PlayerDetails,val gameScore:Int):MainScreenEffects()
     data class ShowCustomGameDialog(val maxNumberOfQuestions:Int) : MainScreenEffects()
     data class CustomDialogGameCommentToUser(val comment:String) : MainScreenEffects()
+    data class Toast(val message: String) : MainScreenEffects()
+
     object DissmissCustomGameDialog : MainScreenEffects()
 }
